@@ -46,9 +46,9 @@ const { flipbox, saveFailed } = useSavedFlipbox();
 
 <style scoped>
 .app-shell {
-  max-width: 1100px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 32px 24px 48px;
 }
 
 .app-header {
@@ -57,30 +57,49 @@ const { flipbox, saveFailed } = useSavedFlipbox();
 
 .app-header h1 {
   margin: 0;
+  font-size: 1.75rem;
+  line-height: 1.25;
 }
 
+.app-intro {
+  max-width: 60ch;
+  margin: 6px 0 0;
+  color: var(--color-text-muted);
+}
+
+/* Panels stretch to the same height so the two columns line up. */
 .app-main {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 24px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .panel {
   min-width: 0;
-  border: 1px solid #d0d7de;
-  border-radius: 8px;
-  padding: 16px;
-  background: #ffffff;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius);
+  padding: 20px 24px 24px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
 }
 
 .panel h2 {
-  margin-top: 0;
+  margin: 0 0 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-size: 1.125rem;
+  line-height: 1.4;
 }
 
 .save-error {
-  margin: 12px 0 0;
-  color: #cf222e;
+  margin: 16px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--color-danger);
+  border-left-width: 4px;
+  border-radius: 6px;
+  color: var(--color-danger);
+  background: #fff5f5;
 }
 
 .save-error:empty {
@@ -88,8 +107,17 @@ const { flipbox, saveFailed } = useSavedFlipbox();
 }
 
 @media (max-width: 720px) {
+  .app-shell {
+    padding: 20px 16px 32px;
+  }
+
   .app-main {
     grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .panel {
+    padding: 16px;
   }
 }
 </style>

@@ -44,12 +44,12 @@ const back = computed({
 .flipbox-builder {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
 }
 
 .field-label {
   display: block;
+  margin-bottom: 8px;
   font-weight: 600;
-  margin-bottom: 6px;
 }
 </style>

@@ -211,17 +211,25 @@
 </script>
 
 <style scoped>
+  /* The outer border marks the edge of an input, so it uses the 3:1 control colour. */
   .rich-text-editor {
-    border: 1px solid #d0d7de;
-    border-radius: 6px;
-    background: #fff;
+    border: 1px solid var(--color-border-control);
+    border-radius: var(--radius);
+    background: var(--color-surface);
   }
 
   .toolbar {
-    padding: 3px 0;
-    border-bottom: 1px solid #d0d7de;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--color-border-subtle);
+    border-radius: calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0 0;
+    background: var(--color-surface-muted);
   }
 
+  /*
+   * Each group draws its divider as a left border, pulled 1px outside this
+   * container. overflow: hidden clips that border on whichever group starts
+   * a row, so a wrapped row never begins with a stray divider.
+   */
   .toolbar-groups {
     display: flex;
     flex-wrap: wrap;
@@ -233,37 +241,38 @@
     display: flex;
     gap: 2px;
     margin-left: -1px;
-    padding: 3px 6px;
-    border-left: 1px solid #d0d7de;
+    /* Vertical padding leaves room for the focus ring inside the clip. */
+    padding: 3px 8px;
+    border-left: 1px solid var(--color-border-subtle);
   }
 
   .toolbar button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 5px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
     border: 1px solid transparent;
-    border-radius: 4px;
+    border-radius: 6px;
     background: transparent;
-    color: #24292f;
-    font: inherit;
-    cursor: pointer;
+    color: var(--color-text);
   }
 
   .toolbar button:hover {
-    background: #f3f4f6;
+    background: #e6eaef;
   }
 
   .toolbar button:focus-visible {
-    outline: 2px solid #0969da;
+    outline: var(--focus-ring);
     outline-offset: 1px;
   }
 
-  /* The border is the on/off cue, so it needs 3:1 against white (WCAG 1.4.11). */
+  /* The border is the on/off cue, so it needs 3:1 against the toolbar (WCAG 1.4.11). */
   .toolbar button[aria-pressed='true'] {
-    background: #ddf4ff;
-    border-color: #0969da;
-    color: #0550ae;
+    background: var(--color-accent-subtle);
+    border-color: var(--color-accent);
+    color: var(--color-accent-hover);
   }
 
   .toolbar button[aria-disabled='true'] {
@@ -291,13 +300,14 @@
    * is clickable and the focus ring outlines the full writing area.
    */
   .editor-content :deep(.tiptap) {
-    padding: 10px;
-    min-height: 120px;
-    border-radius: 0 0 5px 5px;
+    min-height: 140px;
+    padding: 12px 14px;
+    border-radius: 0 0 calc(var(--radius) - 1px) calc(var(--radius) - 1px);
+    overflow-wrap: anywhere;
   }
 
   .editor-content :deep(.tiptap:focus-visible) {
-    outline: 2px solid #0969da;
+    outline: var(--focus-ring);
     outline-offset: -2px;
   }
 
@@ -310,8 +320,9 @@
     margin: 0 0 8px;
     padding-left: 24px;
   }
-  .editor-content :deep(.tiptap) {
-    overflow-wrap: anywhere;
+
+  .editor-content :deep(.tiptap > :last-child) {
+    margin-bottom: 0;
   }
 
   .editor-content :deep(pre) {

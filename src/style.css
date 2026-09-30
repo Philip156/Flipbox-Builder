@@ -1,38 +1,59 @@
+/*
+ * Shared palette. Contrast ratios are against white unless noted, so the
+ * WCAG targets are easy to check when changing a value:
+ *   text 4.5:1, large text and UI boundaries/state 3:1 (1.4.3, 1.4.11).
+ */
+:root {
+  --color-text: #1f2328; /* 16:1 */
+  --color-text-muted: #57606a; /* 6.4:1, 6:1 on --color-surface-muted */
+  --color-surface: #ffffff;
+  --color-surface-muted: #f6f8fa;
+  --color-page: #eef1f4;
+  --color-border-subtle: #d0d7de; /* decorative dividers only */
+  --color-border-control: #6e7781; /* 4.6:1, edges of things you interact with */
+  --color-accent: #0969da; /* 5.2:1, focus rings, pressed state, primary button */
+  --color-accent-hover: #0550ae;
+  --color-accent-subtle: #ddf4ff;
+  --color-danger: #cf222e; /* 5.4:1 */
+
+  --radius: 8px;
+  --shadow-panel: 0 1px 2px rgb(31 35 40 / 6%), 0 1px 8px rgb(31 35 40 / 4%);
+  --focus-ring: 2px solid var(--color-accent);
+}
+
 * {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  color: #1b1f23;
-  background: #f6f8fa;
+  color: var(--color-text);
+  background: var(--color-page);
   font-family:
     system-ui,
     -apple-system,
     'Segoe UI',
     Roboto,
     sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
 button {
   font: inherit;
   cursor: pointer;
-  border: 1px solid #d0d7de;
+  border: 1px solid var(--color-border-control);
   border-radius: 6px;
-  background: #ffffff;
+  background: var(--color-surface);
+  color: var(--color-text);
   padding: 6px 10px;
 }
 
 button:hover {
-  background: #f0f3f6;
+  background: var(--color-surface-muted);
 }
 
 button:focus-visible {
-  outline: 2px solid #2e74b5;
+  outline: var(--focus-ring);
   outline-offset: 2px;
-}
-
-button[aria-pressed='true'] {
-  background: #dbeafe;
-  border-color: #2e74b5;
 }
