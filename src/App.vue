@@ -17,6 +17,13 @@
       <section class="panel" aria-labelledby="builder-heading">
         <h2 id="builder-heading">Builder</h2>
         <FlipboxBuilder v-model="flipbox" />
+        <!-- Only speaks up on failure; saving normally happens silently. -->
+        <p class="save-error" role="alert">
+          <template v-if="saveFailed">
+            Your changes couldn't be saved in this browser, so they'll be lost if you
+            refresh. Storage may be full or disabled.
+          </template>
+        </p>
       </section>
 
       <section class="panel" aria-labelledby="preview-heading">
@@ -28,18 +35,13 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
 import FlipboxBuilder from './components/FlipboxBuilder.vue';
 import FlipboxPreview from './components/FlipboxPreview.vue';
+import { useSavedFlipbox } from './composables/useSavedFlipbox';
 
-// TODO: This is a minimal starting shape just so the builder and preview
-// have something to share. Replace or extend it to fit your own data
-// model (e.g. add ids, timestamps, etc.) and wire up persistence as
-// described in the task spec.
-const flipbox = ref({
-  front: '',
-  back: '',
-});
+// Shared by the builder and preview. Restored from localStorage on load
+// and saved automatically as it changes.
+const { flipbox, saveFailed } = useSavedFlipbox();
 </script>
 
 <style scoped>
@@ -74,6 +76,15 @@ const flipbox = ref({
 
 .panel h2 {
   margin-top: 0;
+}
+
+.save-error {
+  margin: 12px 0 0;
+  color: #cf222e;
+}
+
+.save-error:empty {
+  display: none;
 }
 
 @media (max-width: 720px) {
