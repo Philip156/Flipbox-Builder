@@ -1,23 +1,43 @@
 <template>
   <div class="rich-text-editor">
     <!--
-      TODO: Build formatting controls here.
-      Required: paragraphs, bold, italic, and one list style (bulleted or
-      numbered), plus undo and redo. Additional formatting, including the
-      other list style, is optional.
-      - Full command reference: https://tiptap.dev/docs/editor/api/commands
-
-      One example button is included below to show the wiring pattern.
-      Replace it with your full toolbar.
+      Follows the WAI-ARIA toolbar pattern: one tab stop, arrow keys move
+      between buttons. Unavailable actions use aria-disabled rather than
+      disabled so the focused button never drops out of the tab order.
     -->
-    <div class="toolbar" role="toolbar" aria-label="Text formatting">
-      <button
-        type="button"
-        :aria-pressed="editor?.isActive('bold') ?? false"
-        @click="editor?.chain().focus().toggleBold().run()"
-      >
-        Bold (example)
-      </button>
+    <div ref="toolbarEl" class="toolbar" role="toolbar" aria-label="Text formatting" :aria-controls="editorId" @keydown="onToolbarKeydown">
+      <div class="toolbar-groups">
+        <div v-for="(group, groupIndex) in toolbarGroups" :key="groupIndex" class="toolbar-group">
+          <button
+            v-for="control in group"
+            :key="control.name"
+            type="button"
+            :tabindex="control.index === focusIndex ? 0 : -1"
+            :aria-label="control.label"
+            :aria-pressed="control.isActive ? control.isActive() : undefined"
+            :aria-disabled="control.isDisabled?.() || undefined"
+            :aria-keyshortcuts="control.shortcut"
+            :title="control.title"
+            @click="runControl(control)"
+            @focus="focusIndex = control.index"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path :d="control.icon" />
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
 
     <EditorContent :editor="editor" class="editor-content" />
@@ -25,85 +45,245 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, watch } from 'vue';
-import { Editor, EditorContent } from '@tiptap/vue-3';
-import StarterKit from '@tiptap/starter-kit';
+  import { onBeforeUnmount, ref, useId, watch } from 'vue';
+  import { Editor, EditorContent } from '@tiptap/vue-3';
+  import StarterKit from '@tiptap/starter-kit';
 
-const props = defineProps({
-  labelledby: { type: String, required: true },
-  modelValue: {
-    type: String,
-    default: '',
-  },
-});
-const emit = defineEmits(['update:modelValue']);
+  const props = defineProps({
+    labelledby: { type: String, required: true },
+    modelValue: {
+      type: String,
+      default: '',
+    },
+  });
+  const emit = defineEmits(['update:modelValue']);
 
-// StarterKit includes bold, italic, bullet list, ordered list,
-// undo/redo (via UndoRedo), paragraphs, and more. You likely won't need
-// to add extensions for the required formatting, but you're free to.
-const editor = new Editor({
-  extensions: [StarterKit],
-  content: props.modelValue,
-  editorProps: {
-    attributes: { role: 'textbox', 'aria-labelledby': props.labelledby, 'aria-multiline': 'true' },
-  },
-  onUpdate: ({ editor: currentEditor }) => {
-    emit('update:modelValue', currentEditor.getHTML());
-  },
-});
+  const editorId = `rich-text-${useId()}`;
 
-// Keeps the editor in sync if modelValue is changed from outside this
-// component (for example, loaded from storage after a refresh).
-watch(
-  () => props.modelValue,
-  value => {
-    const isSame = value === editor.getHTML();
-    if (!isSame) {
-      editor.commands.setContent(value || '', { emitUpdate: false });
-    }
-  },
-);
+  // StarterKit includes bold, italic, bullet list, ordered list, undo/redo
+  const editor = new Editor({
+    extensions: [StarterKit],
+    content: props.modelValue,
+    editorProps: {
+      attributes: {
+        id: editorId,
+        role: 'textbox',
+        'aria-labelledby': props.labelledby,
+        'aria-multiline': 'true',
+      },
+    },
+    onUpdate: ({ editor: currentEditor }) => {
+      emit('update:modelValue', currentEditor.getHTML());
+    },
+  });
 
-onBeforeUnmount(() => {
-  editor.destroy();
-});
+  // Keeps the editor in sync if modelValue is changed from outside this
+  // component (for example, loaded from storage after a refresh).
+  watch(
+    () => props.modelValue,
+    value => {
+      const isSame = value === editor.getHTML();
+      if (!isSame) {
+        editor.commands.setContent(value || '', { emitUpdate: false });
+      }
+    },
+  );
 
-defineExpose({ editor });
+  // Grouped for visual dividers.
+  const toolbarGroups = [
+    [
+      {
+        name: 'paragraph',
+        icon: 'M13 4v16M17 4v16M19 4H9.5a4.5 4.5 0 0 0 0 9H13',
+        label: 'Paragraph',
+        title: 'Paragraph (Ctrl+Alt+0)',
+        shortcut: 'Control+Alt+0',
+        // List items contain paragraphs too, so only count a paragraph as
+        // active when it isn't inside a list.
+        isActive: () =>
+          editor.isActive('paragraph') &&
+          !editor.isActive('bulletList') &&
+          !editor.isActive('orderedList'),
+        // clearNodes lifts the selection out of any list, then sets a paragraph.
+        run: chain => chain.clearNodes().setParagraph(),
+      },
+    ],
+    [
+      {
+        name: 'bold',
+        icon: 'M14 12a4 4 0 0 0 0-8H6v8M15 20a4 4 0 0 0 0-8H6v8Z',
+        label: 'Bold',
+        title: 'Bold (Ctrl+B)',
+        shortcut: 'Control+B',
+        isActive: () => editor.isActive('bold'),
+        run: chain => chain.toggleBold(),
+      },
+      {
+        name: 'italic',
+        icon: 'M19 4h-9M14 20H5M15 4 9 20',
+        label: 'Italic',
+        title: 'Italic (Ctrl+I)',
+        shortcut: 'Control+I',
+        isActive: () => editor.isActive('italic'),
+        run: chain => chain.toggleItalic(),
+      },
+    ],
+    [
+      {
+        name: 'bulletList',
+        icon: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
+        label: 'Bulleted list',
+        title: 'Bulleted list (Ctrl+Shift+8)',
+        shortcut: 'Control+Shift+8',
+        isActive: () => editor.isActive('bulletList'),
+        run: chain => chain.toggleBulletList(),
+      },
+      {
+        name: 'orderedList',
+        icon: 'M10 6h11M10 12h11M10 18h11M4 6h1v4M4 10h2M6 18H4c0-1 2-2 2-3s-1-1.5-2-1',
+        label: 'Numbered list',
+        title: 'Numbered list (Ctrl+Shift+7)',
+        shortcut: 'Control+Shift+7',
+        isActive: () => editor.isActive('orderedList'),
+        run: chain => chain.toggleOrderedList(),
+      },
+    ],
+    [
+      {
+        name: 'undo',
+        icon: 'M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11',
+        label: 'Undo',
+        title: 'Undo (Ctrl+Z)',
+        shortcut: 'Control+Z',
+        isDisabled: () => !editor.can().undo(),
+        run: chain => chain.undo(),
+      },
+      {
+        name: 'redo',
+        icon: 'm15 14 5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13',
+        label: 'Redo',
+        title: 'Redo (Ctrl+Shift+Z)',
+        shortcut: 'Control+Shift+Z',
+        isDisabled: () => !editor.can().redo(),
+        run: chain => chain.redo(),
+      },
+    ],
+  ];
+  toolbarGroups.flat().forEach((control, index) => {
+    control.index = index;
+  });
+
+  const toolbarEl = ref(null);
+  const focusIndex = ref(0);
+
+  function runControl(control) {
+    if (control.isDisabled?.()) return;
+    control.run(editor.chain().focus()).run();
+  }
+
+  function onToolbarKeydown(event) {
+    const buttons = [...toolbarEl.value.querySelectorAll('button')];
+    const last = buttons.length - 1;
+    const targets = {
+      ArrowRight: focusIndex.value === last ? 0 : focusIndex.value + 1,
+      ArrowLeft: focusIndex.value === 0 ? last : focusIndex.value - 1,
+      Home: 0,
+      End: last,
+    };
+    const next = targets[event.key];
+    if (next === undefined) return;
+    event.preventDefault();
+    focusIndex.value = next;
+    buttons[next].focus();
+  }
+
+  onBeforeUnmount(() => {
+    editor.destroy();
+  });
+
+  defineExpose({ editor });
 </script>
 
 <style scoped>
-.rich-text-editor {
-  border: 1px solid #d0d7de;
-  border-radius: 6px;
-  background: #fff;
-}
+  .rich-text-editor {
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    background: #fff;
+  }
 
-.toolbar {
-  display: flex;
-  gap: 4px;
-  padding: 6px;
-  border-bottom: 1px solid #d0d7de;
-}
+  .toolbar {
+    padding: 3px 0;
+    border-bottom: 1px solid #d0d7de;
+  }
 
-.editor-content {
-  padding: 10px;
-  min-height: 120px;
-}
+  .toolbar-groups {
+    display: flex;
+    flex-wrap: wrap;
+    row-gap: 2px;
+    overflow: hidden;
+  }
 
-.editor-content :deep(p) {
-  margin: 0 0 8px;
-}
+  .toolbar-group {
+    display: flex;
+    gap: 2px;
+    margin-left: -1px;
+    padding: 3px 6px;
+    border-left: 1px solid #d0d7de;
+  }
 
-.editor-content :deep(ul),
-.editor-content :deep(ol) {
-  margin: 0 0 8px;
-  padding-left: 24px;
-}
-.editor-content :deep(.tiptap) {
-  overflow-wrap: anywhere;
-}
+  .toolbar button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+    color: #24292f;
+    font: inherit;
+    cursor: pointer;
+  }
 
-.editor-content :deep(pre) {
-  white-space: pre-wrap;
-}
+  .toolbar button:hover {
+    background: #f3f4f6;
+  }
+
+  .toolbar button:focus-visible {
+    outline: 2px solid #0969da;
+    outline-offset: 1px;
+  }
+
+  .toolbar button[aria-pressed='true'] {
+    background: #ddf4ff;
+    border-color: #54aeff;
+    color: #0550ae;
+  }
+
+  .toolbar button[aria-disabled='true'] {
+    color: #8c959f;
+    cursor: not-allowed;
+    background: transparent;
+  }
+
+  .editor-content {
+    padding: 10px;
+    min-height: 120px;
+  }
+
+  .editor-content :deep(p) {
+    margin: 0 0 8px;
+  }
+
+  .editor-content :deep(ul),
+  .editor-content :deep(ol) {
+    margin: 0 0 8px;
+    padding-left: 24px;
+  }
+  .editor-content :deep(.tiptap) {
+    overflow-wrap: anywhere;
+  }
+
+  .editor-content :deep(pre) {
+    white-space: pre-wrap;
+  }
 </style>
