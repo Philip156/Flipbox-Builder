@@ -89,6 +89,19 @@
     },
   );
 
+  // Tiptap's shortcuts use Cmd on Apple devices and Ctrl elsewhere, so
+  // describe them the same way. `aria-keyshortcuts` needs the standard key
+  // names; the tooltip uses the names people see on their keyboard.
+  const isApple = /Mac|iPhone|iPad/.test(navigator.userAgent);
+  function shortcut(label, ...keys) {
+    const ariaNames = { Mod: isApple ? 'Meta' : 'Control' };
+    const visibleNames = { Mod: isApple ? 'Cmd' : 'Ctrl', Alt: isApple ? 'Option' : 'Alt' };
+    return {
+      shortcut: keys.map(key => ariaNames[key] ?? key).join('+'),
+      title: `${label} (${keys.map(key => visibleNames[key] ?? key).join('+')})`,
+    };
+  }
+
   // Grouped for visual dividers.
   const toolbarGroups = [
     [
@@ -96,8 +109,7 @@
         name: 'paragraph',
         icon: 'M13 4v16M17 4v16M19 4H9.5a4.5 4.5 0 0 0 0 9H13',
         label: 'Paragraph',
-        title: 'Paragraph (Ctrl+Alt+0)',
-        shortcut: 'Control+Alt+0',
+        ...shortcut('Paragraph', 'Mod', 'Alt', '0'),
         // List items contain paragraphs too, so only count a paragraph as
         // active when it isn't inside a list.
         isActive: () =>
@@ -113,8 +125,7 @@
         name: 'bold',
         icon: 'M14 12a4 4 0 0 0 0-8H6v8M15 20a4 4 0 0 0 0-8H6v8Z',
         label: 'Bold',
-        title: 'Bold (Ctrl+B)',
-        shortcut: 'Control+B',
+        ...shortcut('Bold', 'Mod', 'B'),
         isActive: () => editor.isActive('bold'),
         run: chain => chain.toggleBold(),
       },
@@ -122,8 +133,7 @@
         name: 'italic',
         icon: 'M19 4h-9M14 20H5M15 4 9 20',
         label: 'Italic',
-        title: 'Italic (Ctrl+I)',
-        shortcut: 'Control+I',
+        ...shortcut('Italic', 'Mod', 'I'),
         isActive: () => editor.isActive('italic'),
         run: chain => chain.toggleItalic(),
       },
@@ -133,8 +143,7 @@
         name: 'bulletList',
         icon: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
         label: 'Bulleted list',
-        title: 'Bulleted list (Ctrl+Shift+8)',
-        shortcut: 'Control+Shift+8',
+        ...shortcut('Bulleted list', 'Mod', 'Shift', '8'),
         isActive: () => editor.isActive('bulletList'),
         run: chain => chain.toggleBulletList(),
       },
@@ -142,8 +151,7 @@
         name: 'orderedList',
         icon: 'M10 6h11M10 12h11M10 18h11M4 6h1v4M4 10h2M6 18H4c0-1 2-2 2-3s-1-1.5-2-1',
         label: 'Numbered list',
-        title: 'Numbered list (Ctrl+Shift+7)',
-        shortcut: 'Control+Shift+7',
+        ...shortcut('Numbered list', 'Mod', 'Shift', '7'),
         isActive: () => editor.isActive('orderedList'),
         run: chain => chain.toggleOrderedList(),
       },
@@ -153,8 +161,7 @@
         name: 'undo',
         icon: 'M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11',
         label: 'Undo',
-        title: 'Undo (Ctrl+Z)',
-        shortcut: 'Control+Z',
+        ...shortcut('Undo', 'Mod', 'Z'),
         isDisabled: () => !editor.can().undo(),
         run: chain => chain.undo(),
       },
@@ -162,8 +169,7 @@
         name: 'redo',
         icon: 'm15 14 5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13',
         label: 'Redo',
-        title: 'Redo (Ctrl+Shift+Z)',
-        shortcut: 'Control+Shift+Z',
+        ...shortcut('Redo', 'Mod', 'Shift', 'Z'),
         isDisabled: () => !editor.can().redo(),
         run: chain => chain.redo(),
       },
@@ -253,9 +259,10 @@
     outline-offset: 1px;
   }
 
+  /* The border is the on/off cue, so it needs 3:1 against white (WCAG 1.4.11). */
   .toolbar button[aria-pressed='true'] {
     background: #ddf4ff;
-    border-color: #54aeff;
+    border-color: #0969da;
     color: #0550ae;
   }
 
@@ -265,9 +272,33 @@
     background: transparent;
   }
 
-  .editor-content {
+  /* High-contrast modes drop custom backgrounds, which would hide the pressed state. */
+  @media (forced-colors: active) {
+    .toolbar button[aria-pressed='true'] {
+      forced-color-adjust: none;
+      background: Highlight;
+      border-color: Highlight;
+      color: HighlightText;
+    }
+
+    .toolbar button[aria-disabled='true'] {
+      color: GrayText;
+    }
+  }
+
+  /*
+   * Padding and height sit on the editable element itself so the whole box
+   * is clickable and the focus ring outlines the full writing area.
+   */
+  .editor-content :deep(.tiptap) {
     padding: 10px;
     min-height: 120px;
+    border-radius: 0 0 5px 5px;
+  }
+
+  .editor-content :deep(.tiptap:focus-visible) {
+    outline: 2px solid #0969da;
+    outline-offset: -2px;
   }
 
   .editor-content :deep(p) {
